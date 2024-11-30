@@ -6,8 +6,10 @@ mod schema;
 mod utils;
 
 // Import the modules
-use modules::auth::handler::{login, protected, register};
-use modules::auth::middleware::JwtMiddleware;
+use modules::auth;
+use modules::post;
+
+// Import the utils
 use utils::db::init_pool;
 
 // Import the required crates
@@ -32,10 +34,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .route("/register", web::post().to(register))
-            .route("/login", web::post().to(login))
-            .route("/protected", web::get().to(protected))
-            .wrap(JwtMiddleware)
+            .configure(auth::init_routes)
+            .configure(post::init_routes)
     })
     .bind(("0.0.0.0", 8080))?
     .run()

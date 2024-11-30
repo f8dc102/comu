@@ -2,7 +2,7 @@
 
 use crate::modules::auth::jwt::generate_jwt;
 use crate::modules::auth::model::User;
-use crate::modules::auth::repository::{create_user, find_user_by_email};
+use crate::modules::auth::repository::{add_user, find_user_by_email, remove_user};
 use crate::utils::db::DbPool;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
@@ -41,7 +41,7 @@ pub async fn register_user(
     };
 
     // Create user in the database
-    create_user(&mut conn, &user).map_err(|_| "Failed to create user")?;
+    add_user(&mut conn, &user).map_err(|_| "Failed to create user")?;
 
     // Generate JWT token
     let token = generate_jwt(&user.uuid.to_string());
@@ -68,4 +68,28 @@ pub async fn login_user(pool: &DbPool, email: &str, password: &str) -> Result<St
 
     // Return success
     Ok(token)
+}
+
+/// Logout a user
+pub async fn logout_user(pool: &DbPool, user_id: &Uuid) -> Result<String, String> {
+    // Connect to the database
+    let mut conn = pool.get().map_err(|_| "Failed to get DB connection")?;
+
+    // @TODO: Implement logout_user function
+    let (_, _) = (user_id, &mut conn);
+
+    // Return success
+    Ok("Logged out".to_string())
+}
+
+/// Delete a user
+pub async fn delete_user(pool: &DbPool, user_id: &Uuid) -> Result<String, String> {
+    // Connect to the database
+    let mut conn = pool.get().map_err(|_| "Failed to get DB connection")?;
+
+    // Delete user from the database
+    remove_user(&mut conn, user_id).map_err(|_| "Failed to delete user")?;
+
+    // Return success
+    Ok("User deleted".to_string())
 }

@@ -1,4 +1,4 @@
--- up.sql
+-- create_users, up.sql
 CREATE TABLE users (
     uuid UUID PRIMARY KEY UNIQUE,
     email VARCHAR(320) UNIQUE NOT NULL,

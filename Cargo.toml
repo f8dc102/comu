@@ -40,6 +40,9 @@ serde_json = "1.0"
 # Async Runtime
 futures = "0.3"
 
+# Markdown Parser
+pulldown-cmark = "0.12"
+
 # Loading in Development Environment, not in Production
 # [dev-dependencies]
 # Dotenvy for Environment Variable
