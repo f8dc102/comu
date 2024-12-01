@@ -1,6 +1,6 @@
 // src/modules/post/handler.rs
 
-use crate::modules::post::service::{create_post, delete_post, get_post, list_posts, update_post};
+use crate::modules::post::service::{create_post, delete_post, get_post, update_post};
 use crate::utils::db::DbPool;
 
 use actix_web::{web, HttpResponse, Responder};
@@ -37,7 +37,10 @@ pub struct ListPosts {
 }
 
 /// Create post handler
-pub async fn create(pool: web::Data<DbPool>, data: web::Json<CreatePost>) -> impl Responder {
+pub async fn create_post_handler(
+    pool: web::Data<DbPool>,
+    data: web::Json<CreatePost>,
+) -> impl Responder {
     // Call the create_post function from the service module
     match create_post(&pool, &data.title, &data.content, &data.author_id).await {
         Ok(post) => HttpResponse::Created().json(post),
@@ -56,7 +59,7 @@ fn render_markdown_to_html(markdown: &str) -> String {
 }
 
 /// Get post handler
-pub async fn get(
+pub async fn get_post_handler(
     pool: web::Data<DbPool>,
     post_id: web::Path<Uuid>,
     query: web::Query<Option<String>>,
@@ -78,17 +81,11 @@ pub async fn get(
     }
 }
 
-/// Delete post handler
-pub async fn delete(pool: web::Data<DbPool>, post_id: web::Path<Uuid>) -> impl Responder {
-    // Call the delete_post function from the service module
-    match delete_post(&pool, &post_id).await {
-        Ok(_) => HttpResponse::NoContent().finish(),
-        Err(err) => HttpResponse::NotFound().json(json!({ "message": err })),
-    }
-}
-
 /// Update post handler
-pub async fn update(pool: web::Data<DbPool>, data: web::Json<UpdatePost>) -> impl Responder {
+pub async fn update_post_handler(
+    pool: web::Data<DbPool>,
+    data: web::Json<UpdatePost>,
+) -> impl Responder {
     // Validate the request
     if data.title.is_none() || data.content.is_none() {
         return HttpResponse::BadRequest()
@@ -114,11 +111,14 @@ pub async fn update(pool: web::Data<DbPool>, data: web::Json<UpdatePost>) -> imp
     }
 }
 
-/// List posts handler
-pub async fn list(pool: web::Data<DbPool>, query: web::Query<ListPosts>) -> impl Responder {
-    // Call the list_posts function from the service module
-    match list_posts(&pool, query.limit.unwrap_or(10)).await {
-        Ok(posts) => HttpResponse::Ok().json(posts),
-        Err(err) => HttpResponse::BadRequest().json(json!({ "message": err })),
+/// Delete post handler
+pub async fn delete_post_handler(
+    pool: web::Data<DbPool>,
+    post_id: web::Path<Uuid>,
+) -> impl Responder {
+    // Call the delete_post function from the service module
+    match delete_post(&pool, &post_id).await {
+        Ok(_) => HttpResponse::NoContent().finish(),
+        Err(err) => HttpResponse::NotFound().json(json!({ "message": err })),
     }
 }

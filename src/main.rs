@@ -20,6 +20,7 @@ use log::info;
 async fn main() -> std::io::Result<()> {
     // Load .env file
     dotenvy::dotenv().ok();
+
     // Initialize logger
     env_logger::init();
 

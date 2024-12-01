@@ -1,20 +1,17 @@
 // src/modules/auth/service.rs
 
 use crate::modules::auth::jwt::generate_jwt;
-use crate::modules::auth::model::User;
-use crate::modules::auth::repository::{add_user, find_user_by_email, remove_user};
+use crate::modules::auth::model::{User, UserUpdate};
+use crate::modules::auth::repository::{
+    add_user, find_user_by_email, find_user_by_uuid, modify_user, remove_user,
+};
 use crate::utils::db::DbPool;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
 use uuid::Uuid;
 
 /// Register a new user in the database
-pub async fn register_user(
-    pool: &DbPool,
-    email: &str,
-    username: &str,
-    password: &str,
-) -> Result<String, String> {
+pub async fn register_user(pool: &DbPool, email: &str, password: &str) -> Result<String, String> {
     // Connect to the database
     let mut conn = pool.get().map_err(|_| "Failed to get DB connection")?;
 
@@ -33,10 +30,9 @@ pub async fn register_user(
     let user = User {
         uuid: Uuid::new_v4(),
         email: email.to_string(),
-        username: username.to_string(),
         password_hash,
-        created_at: None,
-        updated_at: None,
+        created_at: chrono::Local::now().naive_utc().into(),
+        updated_at: chrono::Local::now().naive_utc().into(),
         deleted_at: None,
     };
 
@@ -80,6 +76,46 @@ pub async fn logout_user(pool: &DbPool, user_id: &Uuid) -> Result<String, String
 
     // Return success
     Ok("Logged out".to_string())
+}
+
+/// Update a user
+pub async fn update_user(
+    pool: &DbPool,
+    user_id: &Uuid,
+    email: &Option<String>,
+    password: &Option<String>,
+) -> Result<String, String> {
+    // Connect to the database
+    let mut conn = pool.get().map_err(|_| "Failed to get DB connection")?;
+
+    // Fetch the current user
+    let current_user = find_user_by_uuid(&mut conn, user_id).map_err(|_| "User not found")?;
+
+    // Check if the email already exists
+    if let Some(new_email) = email {
+        if let Ok(existing_user) = find_user_by_email(&mut conn, new_email) {
+            if existing_user.uuid != *user_id {
+                return Err("Email is already in use".to_string());
+            }
+        }
+    }
+
+    // Prepare updated user fields
+    let updated_user = UserUpdate {
+        email: email.clone().or(Some(current_user.email)),
+        password_hash: if let Some(pass) = password {
+            Some(hash(pass, DEFAULT_COST).map_err(|_| "Password hashing failed")?)
+        } else {
+            Some(current_user.password_hash.clone())
+        },
+        updated_at: chrono::Local::now().naive_utc(),
+    };
+
+    // Update user in the database
+    modify_user(&mut conn, user_id, &updated_user).map_err(|_| "Failed to update user")?;
+
+    // Return success
+    Ok("User updated".to_string())
 }
 
 /// Delete a user

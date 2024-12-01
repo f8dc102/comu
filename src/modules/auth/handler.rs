@@ -1,6 +1,8 @@
 // src/modlus/auth/handler.rs
 
-use crate::modules::auth::service::{delete_user, login_user, logout_user, register_user};
+use crate::modules::auth::service::{
+    delete_user, login_user, logout_user, register_user, update_user,
+};
 use crate::utils::db::DbPool;
 
 use actix_web::{web, HttpResponse, Responder};
@@ -11,7 +13,6 @@ use serde_json::json;
 #[derive(Deserialize)]
 pub struct RegisterRequest {
     email: String,
-    username: String,
     password: String,
 }
 
@@ -28,6 +29,14 @@ pub struct LogoutRequest {
     pub uuid: uuid::Uuid,
 }
 
+/// Update request struct
+#[derive(Deserialize)]
+pub struct UpdateRequest {
+    pub uuid: uuid::Uuid,
+    pub email: Option<String>,
+    pub password: Option<String>,
+}
+
 /// Delete request struct
 #[derive(Deserialize)]
 pub struct DeleteRequest {
@@ -35,16 +44,22 @@ pub struct DeleteRequest {
 }
 
 /// Register handler
-pub async fn register(pool: web::Data<DbPool>, req: web::Json<RegisterRequest>) -> impl Responder {
+pub async fn register_user_handler(
+    pool: web::Data<DbPool>,
+    req: web::Json<RegisterRequest>,
+) -> impl Responder {
     // Call the register_user function from the service module
-    match register_user(&pool, &req.email, &req.username, &req.password).await {
+    match register_user(&pool, &req.email, &req.password).await {
         Ok(token) => HttpResponse::Ok().json(json!({ "token": token })),
         Err(err) => HttpResponse::BadRequest().json(json!({ "message": err })),
     }
 }
 
 /// Login handler
-pub async fn login(pool: web::Data<DbPool>, req: web::Json<LoginRequest>) -> impl Responder {
+pub async fn login_user_handler(
+    pool: web::Data<DbPool>,
+    req: web::Json<LoginRequest>,
+) -> impl Responder {
     // Call the login_user function from the service module
     match login_user(&pool, &req.email, &req.password).await {
         Ok(token) => HttpResponse::Ok().json(json!({ "token": token })),
@@ -53,7 +68,10 @@ pub async fn login(pool: web::Data<DbPool>, req: web::Json<LoginRequest>) -> imp
 }
 
 /// Logout handler
-pub async fn logout(pool: web::Data<DbPool>, req: web::Json<LogoutRequest>) -> impl Responder {
+pub async fn logout_user_handler(
+    pool: web::Data<DbPool>,
+    req: web::Json<LogoutRequest>,
+) -> impl Responder {
     // Call the logout_user function from the service module
     match logout_user(&pool, &req.uuid).await {
         Ok(_) => HttpResponse::Ok().json(json!({ "message": "Logged out" })),
@@ -61,8 +79,23 @@ pub async fn logout(pool: web::Data<DbPool>, req: web::Json<LogoutRequest>) -> i
     }
 }
 
+/// Update user handler
+pub async fn update_user_handler(
+    pool: web::Data<DbPool>,
+    req: web::Json<UpdateRequest>,
+) -> impl Responder {
+    // Call the update_user function from the service module
+    match update_user(&pool, &req.uuid, &req.email, &req.password).await {
+        Ok(token) => HttpResponse::Ok().json(json!({ "token": token })),
+        Err(err) => HttpResponse::Unauthorized().json(json!({ "message": err })),
+    }
+}
+
 /// Delete user handler
-pub async fn delete(pool: web::Data<DbPool>, req: web::Json<DeleteRequest>) -> impl Responder {
+pub async fn delete_user_handler(
+    pool: web::Data<DbPool>,
+    req: web::Json<DeleteRequest>,
+) -> impl Responder {
     // Call the delete_user function from the service module
     match delete_user(&pool, &req.uuid).await {
         Ok(_) => HttpResponse::Ok().json(json!({ "message": "User deleted" })),
@@ -70,8 +103,17 @@ pub async fn delete(pool: web::Data<DbPool>, req: web::Json<DeleteRequest>) -> i
     }
 }
 
-/// Protected handler for testing JWT Middleware
-/// @TODO: Remove this handler in production
-pub async fn protected() -> impl Responder {
-    HttpResponse::Ok().json(json!({ "message": "You are authorized!" }))
+/// Verify email handler
+pub async fn verify_email_handler() -> impl Responder {
+    HttpResponse::Ok().json(json!({ "message": "Verify email" }))
+}
+
+/// Reset password handler
+pub async fn reset_password_handler() -> impl Responder {
+    HttpResponse::Ok().json(json!({ "message": "Reset password" }))
+}
+
+/// Refresh token handler
+pub async fn refresh_token_handler() -> impl Responder {
+    HttpResponse::Ok().json(json!({ "message": "Refresh token" }))
 }
