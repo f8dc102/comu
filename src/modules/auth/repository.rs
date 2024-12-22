@@ -33,7 +33,7 @@ pub fn modify_user(
         .execute(conn)
 }
 
-/// Delete a user from the database
+/// Delete a user in the database
 pub fn remove_user(conn: &mut PgConnection, uuid: &Uuid) -> QueryResult<usize> {
     diesel::delete(users::table.filter(users::uuid.eq(uuid))).execute(conn)
 }

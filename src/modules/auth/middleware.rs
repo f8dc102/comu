@@ -1,17 +1,22 @@
 // src/modules/auth/middleware.rs
 
-use crate::modules::auth::jwt::validate_jwt;
+use crate::utils::jwt::validate_jwt;
 
 use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
 };
 use futures::future::{ok, LocalBoxFuture, Ready};
+use once_cell::sync::Lazy;
 use std::{
     rc::Rc,
     sync::Arc,
     task::{Context, Poll},
 };
+
+/// Initialize the JWT_SECRET once
+static JWT_SECRET: Lazy<String> =
+    Lazy::new(|| std::env::var("JWT_SECRET").expect("JWT_SECRET must be set"));
 
 // There are two steps in middleware processing.
 // 1. Middleware initialization, middleware factory gets called with
@@ -61,17 +66,38 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let service = self.service.clone();
+
+        // Get the Authorization header
+        let auth_header = req
+            .headers()
+            .get("Authorization")
+            .ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing Authorization header"));
+
         let (http_request, payload) = req.into_parts();
 
+        // Process the Authorization header
+        let auth_str = auth_header.and_then(|header| {
+            header
+                .to_str()
+                .map_err(|_| actix_web::error::ErrorUnauthorized("Invalid Authorization header"))
+        });
+
+        let token = auth_str.and_then(|auth| {
+            auth.strip_prefix("Bearer ")
+                .ok_or_else(|| actix_web::error::ErrorUnauthorized("Missing Bearer prefix"))
+        });
+
         let fut = async move {
-            // HttpRequest로 변환하여 RRRuuuuuuuuu 호출
-            match validate_jwt(&http_request) {
-                Ok(claims) => {
-                    let req = ServiceRequest::from_parts(http_request, payload);
-                    req.extensions_mut().insert(Arc::new(claims));
-                    service.call(req).await
-                }
-                Err(_) => Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+            match token {
+                Ok(token) => match validate_jwt(JWT_SECRET.as_str(), token) {
+                    Ok(claims) => {
+                        let req = ServiceRequest::from_parts(http_request, payload);
+                        req.extensions_mut().insert(Arc::new(claims));
+                        service.call(req).await
+                    }
+                    Err(_) => Err(actix_web::error::ErrorUnauthorized("Unauthorized")),
+                },
+                Err(err) => Err(err),
             }
         };
 

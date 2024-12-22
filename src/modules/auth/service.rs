@@ -1,11 +1,11 @@
 // src/modules/auth/service.rs
 
-use crate::modules::auth::jwt::generate_jwt;
 use crate::modules::auth::model::{User, UserUpdate};
 use crate::modules::auth::repository::{
     add_user, find_user_by_email, find_user_by_uuid, modify_user, remove_user,
 };
 use crate::utils::db::DbPool;
+use crate::utils::jwt::generate_jwt;
 
 use bcrypt::{hash, verify, DEFAULT_COST};
 use uuid::Uuid;

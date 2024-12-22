@@ -1,11 +1,10 @@
 // src/modules/auth/mod.rs
 
 pub mod handler;
-pub mod jwt;
 pub mod middleware;
-mod model;
-mod repository;
-mod service;
+pub mod model;
+pub mod repository;
+pub mod service;
 
 use handler::{
     delete_user_handler, login_user_handler, logout_user_handler, refresh_token_handler,
